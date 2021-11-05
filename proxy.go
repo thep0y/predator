@@ -3,7 +3,7 @@
  * @Email: thepoy@163.com
  * @File Name: proxy.go
  * @Created: 2021-07-27 12:15:35
- * @Modified: 2021-09-08 17:34:08
+ * @Modified:  2021-11-05 14:12:39
  */
 
 package predator
@@ -34,7 +34,13 @@ func (c *Crawler) DialWithProxyAndTimeout(timeout time.Duration) fasthttp.DialFu
 			return proxy.Socks5Proxy(proxyAddr, addr)
 		} else {
 			c.log.Fatal().Caller().
-				Err(ErrUnknownProtocol).
+				Err(&proxy.ProxyErr{
+					Code: proxy.ErrUnknownProtocolCode,
+					Args: map[string]string{
+						"proxy_addr": proxyAddr,
+					},
+					Msg: "only support http and socks5 protocol, but the incoming proxy address uses an unknown protocol",
+				}).
 				Str("proxy", proxyAddr).
 				Send()
 			return nil, nil

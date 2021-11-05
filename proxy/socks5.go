@@ -3,7 +3,7 @@
  * @Email: thepoy@163.com
  * @File Name: socks5.go (c) 2021
  * @Created: 2021-07-23 09:22:36
- * @Modified: 2021-08-01 08:35:27
+ * @Modified: 2021-11-05 14:18:10
  */
 
 package proxy
@@ -16,11 +16,17 @@ import (
 	netProxy "golang.org/x/net/proxy"
 )
 
-var AddrIsNULL = errors.New("ip and port cannot be empty")
+var ErrAddrIsNULL = errors.New("ip and port cannot be empty")
 
 func Socks5Proxy(proxyAddr string, addr string) (net.Conn, error) {
 	if proxyAddr == "" {
-		panic(AddrIsNULL)
+		panic(ProxyErr{
+			Code: ErrIPOrPortIsNullCode,
+			Msg:  "ip and port cannot be empty",
+			Args: map[string]string{
+				"invalid_proxy": proxyAddr,
+			},
+		})
 	}
 	var (
 		u      *url.URL

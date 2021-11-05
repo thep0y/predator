@@ -3,13 +3,14 @@
  * @Email: thepoy@163.com
  * @File Name: craw.go
  * @Created: 2021-07-23 08:52:17
- * @Modified: 2021-10-11 16:14:37
+ * @Modified: 2021-11-05 14:31:48
  */
 
 package predator
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/url"
 	"strings"
@@ -22,9 +23,12 @@ import (
 	pctx "github.com/thep0y/predator/context"
 	"github.com/thep0y/predator/html"
 	"github.com/thep0y/predator/json"
+	"github.com/thep0y/predator/proxy"
 	"github.com/tidwall/gjson"
 	"github.com/valyala/fasthttp"
 )
+
+var ErrNoCacheSet = errors.New("no cache set")
 
 // HandleRequest is used to patch the request
 type HandleRequest func(r *Request)
@@ -370,7 +374,7 @@ func (c *Crawler) do(request *Request) (*Response, *fasthttp.Response, error) {
 	}
 
 	if err != nil {
-		if p, ok := isProxyInvalid(err); ok {
+		if p, ok := proxy.IsProxyInvalid(err); ok {
 			err = c.removeInvalidProxy(p)
 			if err != nil {
 				c.log.Fatal().Caller().Err(err).Send()
@@ -605,18 +609,21 @@ func (c *Crawler) processHTMLHandler(r *Response) error {
 }
 
 // removeInvalidProxy 只有在使用代理池且当前请求使用的代理来自于代理池时，才能真正删除失效代理
-func (c *Crawler) removeInvalidProxy(proxy string) error {
+func (c *Crawler) removeInvalidProxy(proxyAddr string) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
 	if c.ProxyPoolAmount() == 0 {
-		return ErrEmptyProxyPool
+		return proxy.ProxyErr{
+			Code: proxy.ErrEmptyProxyPoolCode,
+			Msg:  "the current proxy ip pool is empty",
+		}
 	}
 
 	targetIndex := -1
 	for i, p := range c.proxyURLPool {
 		addr := strings.Split(p, "//")[1]
-		if addr == proxy {
+		if addr == proxyAddr {
 			targetIndex = i
 			break
 		}
@@ -629,15 +636,24 @@ func (c *Crawler) removeInvalidProxy(proxy string) error {
 		)
 
 		c.log.Debug().
-			Str("proxy", proxy).
+			Str("proxy", proxyAddr).
 			Msg("invalid proxy have been deleted from the proxy pool")
 
 		if len(c.proxyURLPool) == 0 {
-			return ErrEmptyProxyPool
+			return proxy.ProxyErr{
+				Code: proxy.ErrEmptyProxyPoolCode,
+				Msg:  "the current proxy ip pool is empty",
+			}
 		}
 	} else {
 		// 没有在代理池中找到失效代理，这个代理来路不明，一样报错
-		return ErrUnkownProxyIP
+		return &proxy.ProxyErr{
+			Code: proxy.ErrUnkownProxyIPCode,
+			Msg:  "proxy address is unkown",
+			Args: map[string]string{
+				"unkown_proxy_addr": proxyAddr,
+			},
+		}
 	}
 
 	return nil

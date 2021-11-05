@@ -3,7 +3,7 @@
  * @Email: thepoy@163.com
  * @File Name: craw_test.go
  * @Created: 2021-07-23 09:22:36
- * @Modified: 2021-09-09 09:08:47
+ * @Modified: 2021-11-05 14:20:50
  */
 
 package predator
@@ -24,6 +24,7 @@ import (
 	"github.com/thep0y/predator/cache"
 	"github.com/thep0y/predator/html"
 	"github.com/thep0y/predator/log"
+	"github.com/thep0y/predator/proxy"
 	"github.com/tidwall/gjson"
 	"github.com/valyala/fasthttp"
 )
@@ -266,7 +267,7 @@ func TestHTTPProxy(t *testing.T) {
 	Convey("测试代理池为空时 panic", t, func() {
 		defer func() {
 			if err := recover(); err != nil {
-				So(err.(error), ShouldEqual, ErrEmptyProxyPool)
+				So(err.(proxy.ProxyErr).Code, ShouldEqual, proxy.ErrEmptyProxyPoolCode)
 			}
 		}()
 		ips := []string{
@@ -536,7 +537,7 @@ func TestParseHTML(t *testing.T) {
 		crawl := NewCrawler()
 
 		Convey("测试解析整体 HTML", func() {
-			crawl.ParseHTML("body", func(he *html.HTMLElement) {
+			crawl.ParseHTML("body", func(he *html.HTMLElement, r *Response) {
 				h, err := he.OuterHTML()
 				So(err, ShouldBeNil)
 				So(h, ShouldEqual, `<body>
@@ -551,7 +552,7 @@ func TestParseHTML(t *testing.T) {
 		})
 
 		Convey("测试解析内部 HTML", func() {
-			crawl.ParseHTML("body", func(he *html.HTMLElement) {
+			crawl.ParseHTML("body", func(he *html.HTMLElement, r *Response) {
 				h, err := he.InnerHTML()
 				So(err, ShouldBeNil)
 				So(h, ShouldEqual, `
@@ -566,20 +567,20 @@ func TestParseHTML(t *testing.T) {
 		})
 
 		Convey("测试解析内部文本", func() {
-			crawl.ParseHTML("title", func(he *html.HTMLElement) {
+			crawl.ParseHTML("title", func(he *html.HTMLElement, r *Response) {
 				So(he.Text(), ShouldEqual, "Test Page")
 			})
 		})
 
 		Convey("测试获取属性", func() {
-			crawl.ParseHTML("p", func(he *html.HTMLElement) {
+			crawl.ParseHTML("p", func(he *html.HTMLElement, r *Response) {
 				attr := he.Attr("class")
 				So(attr, ShouldEqual, "description")
 			})
 		})
 
 		Convey("测试查找子元素", func() {
-			crawl.ParseHTML("body", func(he *html.HTMLElement) {
+			crawl.ParseHTML("body", func(he *html.HTMLElement, r *Response) {
 				So(he.FirstChild("p").Attr("class"), ShouldEqual, "description")
 				So(he.Child("p", 2).Text(), ShouldEqual, "This is a 2")
 				So(he.ChildAttr("p", "class"), ShouldEqual, "description")
