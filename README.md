@@ -1,4 +1,6 @@
-> 项目移动到https://github.com/go-predator/predator，此仓库不再维护
+> :warning: 项目移动到https://github.com/go-predator/predator
+>
+> 此仓库不再维护
 
 # predator / 掠食者
 
