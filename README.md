@@ -1,4 +1,7 @@
+> 项目移动到https://github.com/go-predator/predator，此仓库不再维护
+
 # predator / 掠食者
+
 基于 fasthttp 开发的高性能爬虫框架
 
 ## 使用
